@@ -1,0 +1,53 @@
+import nltk
+from nltk.stem import WordNetLemmatizer
+from nltk.wsd import lesk
+import geocoder
+import os
+import fnmatch
+
+
+def get_location_lemmas():
+    with open('location_lemmas.txt', 'r') as infile:
+        location_lemmas = infile.read().splitlines()
+    return location_lemmas
+
+
+def get_text_block(file):
+    text_block = ''
+    if fnmatch.fnmatch(file, '*.txt'):
+        with open("./detection/" + file, "r") as f:
+            text_block = f.read()
+    return text_block
+
+
+def get_tagged_tokens(sentence):
+    tokens = nltk.word_tokenize(sentence)
+    tagged_tokens = nltk.pos_tag(tokens)
+    return tagged_tokens
+
+
+def main():
+    # for file in os.listdir('./detection'):
+    #     print(file, ':')
+        text_block = get_text_block("/11158130.txt")
+        all_nnp_tokens = list(set(map(lambda x: x[0], list(filter(lambda x: x[1] == 'NNP', get_tagged_tokens(text_block))))))
+        # print(all_nnp_tokens)
+        location_lemmas = get_location_lemmas()
+        for token in all_nnp_tokens:
+            try:
+                most_probable_definition = lesk(all_nnp_tokens, token, 'n').definition()
+                definition_lemmas = list(
+                    map(lambda word: WordNetLemmatizer().lemmatize(word), nltk.word_tokenize(most_probable_definition)))
+
+                if any(word in location_lemmas for word in definition_lemmas):
+                    geoname = geocoder.geonames(token, key='mnecarechec')
+                    print(geoname.address,'-',geoname.country, ':', geoname.lat, geoname.lng)
+            except AttributeError:
+                # print(token, 'has no WordNet entry')
+                g = geocoder.geonames(token, key='mnecarechec')
+                if g.address is not None:
+                    print('EXCEPTION:', token,  ':', g.address)
+                pass
+
+
+main()
