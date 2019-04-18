@@ -2,7 +2,7 @@ import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.wsd import lesk
 import geocoder
-import os
+from wiktionaryparser import WiktionaryParser
 import fnmatch
 
 
@@ -48,26 +48,29 @@ def main():
     #     print(file, ':')
         text_block = get_text_block("/11158130.txt")
         all_nnp_tokens = list(set(map(lambda x: x[0], list(filter(lambda x: x[1] == 'NNP', get_tagged_tokens(text_block))))))
-        print(all_nnp_tokens)
         all_nnp_tokens = filter_trailing_symbols(all_nnp_tokens)
-        print(all_nnp_tokens)
 
         location_lemmas = get_location_lemmas()
         for token in all_nnp_tokens:
             try:
-                most_probable_definition = lesk(all_nnp_tokens, token, 'n').definition()
+                definition = lesk(all_nnp_tokens, token, 'n').definition()
+            except AttributeError:
+                definition = ''
+                try:
+                    word = WiktionaryParser().fetch(token)[0]
+                    for definitions in word['definitions']:
+                        for subdefinition in definitions['text']:
+                            definition += subdefinition + ' '
+                except IndexError:
+                    pass
+            finally:
+                # print(token, definition)
                 definition_lemmas = list(
-                    map(lambda word: WordNetLemmatizer().lemmatize(word), nltk.word_tokenize(most_probable_definition)))
-
+                    map(lambda word: WordNetLemmatizer().lemmatize(word), nltk.word_tokenize(definition)))
                 if any(word in location_lemmas for word in definition_lemmas):
                     geoname = geocoder.geonames(token, key='mnecarechec')
                     print(geoname.address,'-',geoname.country, ':', geoname.lat, geoname.lng)
-            except AttributeError:
-                # print(token, 'has no WordNet entry')
-                # g = geocoder.geonames(token, key='mnecarechec')
-                # if g.address is not None:
-                #     print('EXCEPTION:', token,  ':', g.address)
-                pass
+
 
 
 
