@@ -6,6 +6,13 @@ import os
 import fnmatch
 
 
+def is_not_int(s):
+    for char in s:
+        if char.isdigit():
+            return False
+    return True
+
+
 def get_location_lemmas():
     with open('location_lemmas.txt', 'r') as infile:
         location_lemmas = infile.read().splitlines()
@@ -26,12 +33,24 @@ def get_tagged_tokens(sentence):
     return tagged_tokens
 
 
+def filter_trailing_symbols(tokens):
+    for i in range(0,len(tokens)):
+        if '/' in tokens[i]:
+            for subtoken in reversed(tokens[i].split('/')):
+                tokens.insert(i+1, subtoken)
+            del tokens[i]
+    tokens = list(filter(lambda token: len(token) > 1 and is_not_int(token), tokens))
+    return tokens
+
+
 def main():
     # for file in os.listdir('./detection'):
     #     print(file, ':')
         text_block = get_text_block("/11158130.txt")
         all_nnp_tokens = list(set(map(lambda x: x[0], list(filter(lambda x: x[1] == 'NNP', get_tagged_tokens(text_block))))))
-        # print(all_nnp_tokens)
+        print(all_nnp_tokens)
+        all_nnp_tokens = filter_trailing_symbols(all_nnp_tokens)
+        print(all_nnp_tokens)
         location_lemmas = get_location_lemmas()
         for token in all_nnp_tokens:
             try:
@@ -44,10 +63,11 @@ def main():
                     print(geoname.address,'-',geoname.country, ':', geoname.lat, geoname.lng)
             except AttributeError:
                 # print(token, 'has no WordNet entry')
-                g = geocoder.geonames(token, key='mnecarechec')
-                if g.address is not None:
-                    print('EXCEPTION:', token,  ':', g.address)
+                # g = geocoder.geonames(token, key='mnecarechec')
+                # if g.address is not None:
+                #     print('EXCEPTION:', token,  ':', g.address)
                 pass
+
 
 
 main()
