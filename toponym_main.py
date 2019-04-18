@@ -51,6 +51,7 @@ def main():
         print(all_nnp_tokens)
         all_nnp_tokens = filter_trailing_symbols(all_nnp_tokens)
         print(all_nnp_tokens)
+
         location_lemmas = get_location_lemmas()
         for token in all_nnp_tokens:
             try:
